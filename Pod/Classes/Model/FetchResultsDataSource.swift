@@ -27,22 +27,22 @@ Class wrapping fetch results as an selectable data source.
 It will register itself as an change observer. So be sure to set yourself as delegate to get notified about updates.
 */
 final class FetchResultsDataSource : NSObject, SelectableDataSource, PHPhotoLibraryChangeObserver {
-    private var fetchResults: [PHFetchResult]
+    fileprivate var fetchResults: [PHFetchResult<AnyObject>]
     var selections: [PHObject] = []
     
     var delegate: SelectableDataDelegate?
     var allowsMultipleSelection: Bool = false
     var maxNumberOfSelections: Int = Int.max
     
-    var selectedIndexPaths: [NSIndexPath] {
+    var selectedIndexPaths: [IndexPath] {
         get {
-            var indexPaths: [NSIndexPath] = []
+            var indexPaths: [IndexPath] = []
             
             for object in selections {
-                for (resultIndex, fetchResult) in enumerate(fetchResults) {
-                    let index = fetchResult.indexOfObject(object)
+                for (resultIndex, fetchResult) in fetchResults.enumerated() {
+                    let index = fetchResult.index(of: object)
                     if index != NSNotFound {
-                        let indexPath = NSIndexPath(forItem: index, inSection: resultIndex)
+                        let indexPath = IndexPath(item: index, section: resultIndex)
                         indexPaths.append(indexPath)
                     }
                 }
@@ -52,84 +52,95 @@ final class FetchResultsDataSource : NSObject, SelectableDataSource, PHPhotoLibr
         }
     }
     
-    convenience init(fetchResult: PHFetchResult) {
+    convenience init(fetchResult: PHFetchResult<AnyObject>) {
         self.init(fetchResults: [fetchResult])
     }
     
-    required init(fetchResults: [PHFetchResult]) {
+    required init(fetchResults: [PHFetchResult<AnyObject>]) {
         self.fetchResults = fetchResults
         
         super.init()
         
-        PHPhotoLibrary.sharedPhotoLibrary().registerChangeObserver(self)
+        PHPhotoLibrary.shared().register(self)
     }
     
     deinit {
-        PHPhotoLibrary.sharedPhotoLibrary().unregisterChangeObserver(self)
+        PHPhotoLibrary.shared().unregisterChangeObserver(self)
     }
     
     // MARK: SelectableDataSource
     var sections: Int {
         get {
-            return count(fetchResults)
+            return fetchResults.count
         }
     }
     
-    func numberOfObjectsInSection(section: Int) -> Int {
+    func numberOfObjectsInSection(_ section: Int) -> Int {
         return fetchResults[section].count
     }
     
-    func objectAtIndexPath(indexPath: NSIndexPath) -> PHObject {
-        return fetchResults[indexPath.section][indexPath.row] as! PHObject
+    func objectAtIndexPath(_ indexPath: IndexPath) -> PHObject {
+        return fetchResults[(indexPath as NSIndexPath).section][(indexPath as NSIndexPath).row] as! PHObject
     }
     
-    func selectObjectAtIndexPath(indexPath: NSIndexPath) {
+    func selectObjectAtIndexPath(_ indexPath: IndexPath) {
         if isObjectAtIndexPathSelected(indexPath) == false && selections.count < maxNumberOfSelections {
             if allowsMultipleSelection == false {
-                selections.removeAll(keepCapacity: true)
+                selections.removeAll(keepingCapacity: true)
             }
             
             selections.append(objectAtIndexPath(indexPath))
         }
     }
     
-    func deselectObjectAtIndexPath(indexPath: NSIndexPath) {
+    func deselectObjectAtIndexPath(_ indexPath: IndexPath) {
         let object = objectAtIndexPath(indexPath)
-        if let index = find(selections, object) {
-            selections.removeAtIndex(index)
+        if let index = selections.index(of: object) {
+            selections.remove(at: index)
         }
     }
     
-    func isObjectAtIndexPathSelected(indexPath: NSIndexPath) -> Bool {
+    func isObjectAtIndexPathSelected(_ indexPath: IndexPath) -> Bool {
         let object = objectAtIndexPath(indexPath)
         
-        return contains(selections, object)
+        return selections.contains(object)
     }
     
     // MARK: PHPhotoLibraryChangeObserver
-    func photoLibraryDidChange(changeInstance: PHChange!) {
-        for (index, fetchResult) in enumerate(fetchResults) {
+    func photoLibraryDidChange(_ changeInstance: PHChange!) {
+        for (index, fetchResult) in fetchResults.enumerated() {
             // Check if there are changes to our fetch result
-            if let collectionChanges = changeInstance.changeDetailsForFetchResult(fetchResult) {
+            if let collectionChanges = changeInstance.changeDetails(for: fetchResult as! PHFetchResult<PHObject>) {
                 // Get the new fetch result
                 let newResult = collectionChanges.fetchResultAfterChanges as PHFetchResult
                 
                 // Replace old result
-                fetchResults[index] = newResult
+                fetchResults[index] = newResult as! PHFetchResult<AnyObject>
                 
                 // Sometimes the properties on PHFetchResultChangeDetail are nil
                 // Work around it for now
                 let incrementalChange = collectionChanges.hasIncrementalChanges && collectionChanges.removedIndexes != nil && collectionChanges.insertedIndexes != nil && collectionChanges.changedIndexes != nil
                 
-                let removedIndexPaths: [NSIndexPath]
-                let insertedIndexPaths: [NSIndexPath]
-                let changedIndexPaths: [NSIndexPath]
+                var removedIndexPaths: [IndexPath] = []
+                var insertedIndexPaths: [IndexPath]  = []
+                var changedIndexPaths: [IndexPath] = []
                 
                 if incrementalChange {
                     // Incremental change, tell delegate what has been deleted, inserted and changed
-                    removedIndexPaths = indexPathsFromIndexSet(collectionChanges.removedIndexes, inSection: index)
-                    insertedIndexPaths = indexPathsFromIndexSet(collectionChanges.insertedIndexes, inSection: index)
-                    changedIndexPaths = indexPathsFromIndexSet(collectionChanges.changedIndexes, inSection: index)
+                    
+                    if let removedIndexes = collectionChanges.removedIndexes {
+                        removedIndexPaths = indexPathsFromIndexSet(removedIndexes, inSection: index)
+                    }
+                    
+                    if let insertedIndexes = collectionChanges.insertedIndexes {
+                         insertedIndexPaths = indexPathsFromIndexSet(insertedIndexes, inSection: index)
+                    }
+                    
+                    if let changedIndexes = collectionChanges.changedIndexes {
+                        changedIndexPaths = indexPathsFromIndexSet(changedIndexes, inSection: index)
+                    }
+                   
+                    
                 } else {
                     // No incremental change. Set empty arrays
                     removedIndexPaths = []
@@ -143,11 +154,11 @@ final class FetchResultsDataSource : NSObject, SelectableDataSource, PHPhotoLibr
         }
     }
     
-    private func indexPathsFromIndexSet(indexSet: NSIndexSet, inSection section: Int) -> [NSIndexPath] {
-        var indexPaths: [NSIndexPath] = []
+    fileprivate func indexPathsFromIndexSet(_ indexSet: IndexSet, inSection section: Int) -> [IndexPath] {
+        var indexPaths: [IndexPath] = []
         
-        indexSet.enumerateIndexesUsingBlock { (index, _) -> Void in
-            indexPaths.append(NSIndexPath(forItem: index, inSection: section))
+        for (index, indexPath) in indexSet.enumerated() {
+            indexPaths.append(IndexPath(item: index, section: section))
         }
         
         return indexPaths

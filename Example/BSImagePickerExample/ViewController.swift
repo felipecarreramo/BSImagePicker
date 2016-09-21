@@ -26,74 +26,74 @@ import Photos
 
 class ViewController: UIViewController {
     
-    @IBAction func showImagePicker(sender: UIButton) {
+    @IBAction func showImagePicker(_ sender: UIButton) {
         let vc = BSImagePickerViewController()
         vc.maxNumberOfSelections = 6
         
         bs_presentImagePickerController(vc, animated: true,
             select: { (asset: PHAsset) -> Void in
-                println("Selected: \(asset)")
+                print("Selected: \(asset)")
             }, deselect: { (asset: PHAsset) -> Void in
-                println("Deselected: \(asset)")
+                print("Deselected: \(asset)")
             }, cancel: { (assets: [PHAsset]) -> Void in
-                println("Cancel: \(assets)")
+                print("Cancel: \(assets)")
             }, finish: { (assets: [PHAsset]) -> Void in
-                println("Finish: \(assets)")
+                print("Finish: \(assets)")
             }, completion: nil)
     }
     
-    @IBAction func showCustomDataSourcePicker(sender: UIButton) {
+    @IBAction func showCustomDataSourcePicker(_ sender: UIButton) {
         // Find some PHAssets to use. In the real world these would probably come from the camera
         // Or some other source. If you want to use your own fetch results for the picker, there is an initalizer for that as well
         // You can also supply an array of assets that should be selected on presentation
         let fetchOptions = PHFetchOptions()
         
         // Camera roll collection
-        let cameraRollCollection = PHAssetCollection.fetchAssetCollectionsWithType(.SmartAlbum, subtype: .SmartAlbumUserLibrary, options: fetchOptions).objectAtIndex(0) as! PHAssetCollection
+        let cameraRollCollection = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .smartAlbumUserLibrary, options: fetchOptions).object(at: 0) 
         
         // Pick out 3 PHAssets
-        let assets = PHAsset.fetchAssetsInAssetCollection(cameraRollCollection, options: fetchOptions)
-        let first = assets.objectAtIndex(0) as! PHAsset
-        let second = assets.objectAtIndex(1) as! PHAsset
-        let third = assets.objectAtIndex(2) as! PHAsset
+        let assets = PHAsset.fetchAssets(in: cameraRollCollection, options: fetchOptions)
+        let first = assets.object(at: 0) 
+        let second = assets.object(at: 1) 
+        let third = assets.object(at: 2) 
         
         // Create transient asset collection
         let selectedAssets = [first, second, third]
-        let transientCollection = PHAssetCollection.transientAssetCollectionWithAssets(selectedAssets, title: "Custom assets")
+        let transientCollection = PHAssetCollection.transientAssetCollection(with: selectedAssets, title: "Custom assets")
         
         let vc = BSImagePickerViewController(assetCollection: transientCollection, selections: selectedAssets)
         
         bs_presentImagePickerController(vc, animated: true,
             select: { (asset: PHAsset) -> Void in
-                println("Selected: \(asset)")
+                print("Selected: \(asset)")
             }, deselect: { (asset: PHAsset) -> Void in
-                println("Deselected: \(asset)")
+                print("Deselected: \(asset)")
             }, cancel: { (assets: [PHAsset]) -> Void in
-                println("Cancel: \(assets)")
+                print("Cancel: \(assets)")
             }, finish: { (assets: [PHAsset]) -> Void in
-                println("Finish: \(assets)")
+                print("Finish: \(assets)")
             }, completion: nil)
     }
     
-    @IBAction func showCustomImagePicker(sender: UIButton) {
+    @IBAction func showCustomImagePicker(_ sender: UIButton) {
         let vc = BSImagePickerViewController()
         vc.maxNumberOfSelections = 6
         
-        vc.albumButton.tintColor = UIColor.greenColor()
-        vc.cancelButton.tintColor = UIColor.redColor()
-        vc.doneButton.tintColor = UIColor.purpleColor()
+        vc.albumButton.tintColor = UIColor.green
+        vc.cancelButton.tintColor = UIColor.red
+        vc.doneButton.tintColor = UIColor.purple
         vc.selectionCharacter = "✓"
-        vc.selectionFillColor = UIColor.blackColor()
-        vc.selectionStrokeColor = UIColor.yellowColor()
-        vc.selectionShadowColor = UIColor.redColor()
-        vc.selectionTextAttributes[NSForegroundColorAttributeName] = UIColor.lightGrayColor()
+        vc.selectionFillColor = UIColor.black
+        vc.selectionStrokeColor = UIColor.yellow
+        vc.selectionShadowColor = UIColor.red
+        vc.selectionTextAttributes[NSForegroundColorAttributeName] = UIColor.lightGray
         vc.cellsPerRow = {(verticalSize: UIUserInterfaceSizeClass, horizontalSize: UIUserInterfaceSizeClass) -> Int in
             switch (verticalSize, horizontalSize) {
-            case (.Compact, .Regular): // iPhone5-6 portrait
+            case (.compact, .regular): // iPhone5-6 portrait
                 return 2
-            case (.Compact, .Compact): // iPhone5-6 landscape
+            case (.compact, .compact): // iPhone5-6 landscape
                 return 2
-            case (.Regular, .Regular): // iPad portrait/landscape
+            case (.regular, .regular): // iPad portrait/landscape
                 return 3
             default:
                 return 2
@@ -102,13 +102,13 @@ class ViewController: UIViewController {
         
         bs_presentImagePickerController(vc, animated: true,
             select: { (asset: PHAsset) -> Void in
-                println("Selected: \(asset)")
+                print("Selected: \(asset)")
             }, deselect: { (asset: PHAsset) -> Void in
-                println("Deselected: \(asset)")
+                print("Deselected: \(asset)")
             }, cancel: { (assets: [PHAsset]) -> Void in
-                println("Cancel: \(assets)")
+                print("Cancel: \(assets)")
             }, finish: { (assets: [PHAsset]) -> Void in
-                println("Finish: \(assets)")
+                print("Finish: \(assets)")
             }, completion: nil)
     }
 }
